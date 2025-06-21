@@ -1,0 +1,28 @@
+# .goreleaser.yml  – minimal but valid
+version: 2
+
+project_name: loghub         # the final binary name
+
+builds:
+  - id: loghub
+    main: .                  # <-- change if your main.go lives elsewhere
+    goarch:
+      - amd64
+      - arm64
+    goos:
+      - windows
+      - linux
+      - darwin
+    ldflags:
+      - -s -w                # strip debug symbols
+
+archives:
+  - id: default
+    format: zip              # tar.gz also works
+    files:
+      - license*             # include a license if you add one
+
+# Disable publish/announce until you’re ready
+release:
+  draft: true
+  disable: true
