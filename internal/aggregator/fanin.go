@@ -7,8 +7,12 @@ import (
 
 // StreamMany starts one tail-goroutine per file, parses each line,
 // and fans everything into a single channel of Entry.
-// The output channel is intentionally *never* closed so that a brief
-// tail restart on Windows can't terminate the whole program.
+//
+// • The output channel is never closed, so a brief tail restart on Windows
+//   can't terminate the whole program.
+//
+// • If ParseLine() returns an error the raw line is forwarded anyway, so
+//   unstructured messages still appear in the UI.
 func StreamMany(paths []string) <-chan Entry {
 	out := make(chan Entry)
 	var wg sync.WaitGroup
@@ -24,17 +28,19 @@ func StreamMany(paths []string) <-chan Entry {
 				return
 			}
 
-			for line := range lines {           // this channel may re-appear
+			for line := range lines {
 				e, err := ParseLine(line)
-				if err == nil {
-					out <- e
+				if err != nil {
+					// Unknown format – keep raw text so user still sees it
+					out <- Entry{Raw: line}
+					continue
 				}
+				out <- e
 			}
 		}(p)
 	}
 
-	// keep a background goroutine so we don't leak wg,
-	// but DON'T close(out) when wg reaches zero
+	// Prevent wg leak, but deliberately never close(out)
 	go func() { wg.Wait() }()
 
 	return out

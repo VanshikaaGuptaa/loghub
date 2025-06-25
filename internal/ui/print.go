@@ -20,6 +20,10 @@ func init() {
 
 // Print renders one Entry with colours and tidy columns.
 func Print(e aggregator.Entry) {
+	if e.Level == "" {                // fallback for Raw-only lines
+        fmt.Println(e.Raw)
+        return
+    }
 	fmt.Printf("%s %s %-10s %s\n",
 		e.Time.Format("15:04:05.000"),      // hh:mm:ss.mmm
 		levelColour(e.Level)(strings.ToUpper(e.Level)),

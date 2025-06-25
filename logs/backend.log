@@ -1,11 +1,4 @@
-2025-06-26T00:10:00.000Z INFO backend "HELLO" 
-2025-06-26T00:10:00.000Z INFO backend "HELLO" 
-2025-06-26T17:10:00Z INFO backend "HELLO, WORLD" 
-2025-06-25T23:20:00Z INFO backend "OK" 
-2025-06-25T23:20:00Z INFO backend "OK" 
-2025-06-25T23:20:00Z INFO backend "OK" 
-garbage
-2025-06-25T23:20:00Z INFO backend "OK" 
-2025-06-25T23:20:00Z ERROR backend "OK" 
-2025-06-25T23:20:00Z ERROR backend "OK" 
+server started at 8000
+server started at 8000
+
 
