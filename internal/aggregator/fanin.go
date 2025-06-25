@@ -1,30 +1,41 @@
 package aggregator
 
 import (
+	"log"
 	"sync"
 )
 
-// StreamMany starts one tailer per file in paths, then returns a single
-// channel that emits entries from *all* files, already merged.
+// StreamMany starts one tail-goroutine per file, parses each line,
+// and fans everything into a single channel of Entry.
+// The output channel is intentionally *never* closed so that a brief
+// tail restart on Windows can't terminate the whole program.
 func StreamMany(paths []string) <-chan Entry {
-	merged := make(chan Entry)
+	out := make(chan Entry)
 	var wg sync.WaitGroup
 
 	for _, p := range paths {
 		wg.Add(1)
 		go func(path string) {
 			defer wg.Done()
-			for e := range startTail(path) { // fan-in
-				merged <- e
+
+			lines, err := startTail(path)
+			if err != nil {
+				log.Printf("tail error %s: %v", path, err)
+				return
+			}
+
+			for line := range lines {           // this channel may re-appear
+				e, err := ParseLine(line)
+				if err == nil {
+					out <- e
+				}
 			}
 		}(p)
 	}
 
-	// close merged channel *after* all tailers finish (i.e., on CTRL-C)
-	go func() {
-		wg.Wait()
-		close(merged)
-	}()
+	// keep a background goroutine so we don't leak wg,
+	// but DON'T close(out) when wg reaches zero
+	go func() { wg.Wait() }()
 
-	return merged
+	return out
 }

@@ -4,6 +4,7 @@ import (
 	"log"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -11,7 +12,8 @@ import (
 	"github.com/VanshikaaGuptaa/loghub/internal/ui"
 )
 
-// --- flags added in init() ---
+/* -------- flag wiring -------- */
+
 var (
 	watchPath     string
 	watchServices []string
@@ -20,46 +22,68 @@ var (
 
 func init() {
 	watchCmd.Flags().StringVarP(&watchPath, "path", "p", "./logs", "directory containing log files")
-	watchCmd.Flags().StringSliceVarP(&watchServices, "services", "s", nil, "comma-list of service names to include")
+	watchCmd.Flags().StringSliceVarP(&watchServices, "services", "s", nil, "comma-list of service names to include (without extension)")
 	watchCmd.Flags().StringVar(&watchExt, "ext", ".log", "log-file extension")
 	rootCmd.AddCommand(watchCmd)
 }
 
-// watchCmd definition (kept from cobra-cli)
 var watchCmd = &cobra.Command{
 	Use:   "watch",
 	Short: "Stream multiple log files live",
 	RunE:  runWatch,
 }
 
-// ------------ actual implementation -------------
-func runWatch(cmd *cobra.Command, args []string) error {
+/* -------- helper: scan + filter once -------- */
 
+func matchingFiles() ([]string, error) {
 	files, err := filepath.Glob(filepath.Join(watchPath, "*"+watchExt))
 	if err != nil {
-		return err
+		return nil, err
 	}
-	if len(watchServices) > 0 {
-		// keep only svc names the user asked for
-		filter := map[string]bool{}
-		for _, svc := range watchServices {
-			filter[svc] = true
-		}
-		var keep []string
-		for _, f := range files {
-			base := filepath.Base(f)           // e.g. backend.log
-			svc := strings.TrimSuffix(base, watchExt)
-			if filter[svc] {
-				keep = append(keep, f)
-			}
-		}
-		files = keep
-	}
-	if len(files) == 0 {
-		log.Println("no matching log files found")
-		return nil
+	if len(watchServices) == 0 {
+		return files, nil
 	}
 
+	filter := make(map[string]bool, len(watchServices))
+	for _, svc := range watchServices {
+		filter[svc] = true
+	}
+
+	var keep []string
+	for _, f := range files {
+		svc := strings.TrimSuffix(filepath.Base(f), watchExt)
+		if filter[svc] {
+			keep = append(keep, f)
+		}
+	}
+	return keep, nil
+}
+
+/* -------- main implementation -------- */
+
+func runWatch(cmd *cobra.Command, args []string) error {
+	// Wait up to 10 s for at least one matching file
+	deadline := time.Now().Add(10 * time.Second)
+
+	var files []string
+	var err error
+	for {
+		files, err = matchingFiles()
+		if err != nil {
+			return err
+		}
+		if len(files) > 0 {
+			break // success: we have files to tail
+		}
+		if time.Now().After(deadline) {
+			log.Printf("no matching log files found after 10 s – exiting")
+			return nil
+		}
+		log.Printf("waiting for log files …")
+		time.Sleep(1 * time.Second)
+	}
+
+	// Fan-in tailers and stream to UI
 	stream := aggregator.StreamMany(files)
 	for e := range stream {
 		ui.Print(e)

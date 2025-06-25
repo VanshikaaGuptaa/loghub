@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode/utf16"
 )
 
 // 1️⃣  Declare the regular expression at file scope
@@ -25,7 +26,18 @@ type Entry struct {
 
 // 3️⃣  The ParseLine function everyone else will call
 func ParseLine(raw string) (Entry, error) {
-	m := lineRE.FindStringSubmatch(raw)
+	raw = strings.TrimPrefix(raw, "\uFEFF") // remove UTF-8 BOM
+	if strings.HasPrefix(raw, "\xFF\xFE") {            // UTF-16 LE BOM
+		b := []byte(raw[2:])                           // skip BOM
+		u16 := make([]uint16, len(b)/2)
+		for i := 0; i < len(u16); i++ {
+			u16[i] = uint16(b[2*i]) | uint16(b[2*i+1])<<8
+		}
+		raw = string(utf16.Decode(u16))                // ← the missing line
+	}
+	  // ← remove UTF-8 BOM if present
+    m := lineRE.FindStringSubmatch(raw)
+	
 	if m == nil {
 		return Entry{Raw: raw}, errBadFormat
 	}

@@ -26,3 +26,27 @@ archives:
 release:
   draft: true
   disable: true
+
+checksum:
+  name_template: 'checksums.txt'
+
+signs:                           # optional – requires gpg or age key
+  - artifacts: checksum
+    cmd: cosign
+    args: ['sign-blob', '--yes', '${artifact}']
+
+brews:                           # Homebrew tap formula
+  - name: loghub
+    repository:
+      owner: VanshikaaGuptaa
+      name: homebrew-tap
+    homepage: https://github.com/VanshikaaGuptaa/loghub
+    description: "Local log aggregator CLI"
+    install: |
+      bin.install "loghub"
+
+scoops:                           # Homebrew tap formula
+  - name: loghub
+    repository:
+      owner: VanshikaaGuptaa
+      name: scoop-bucket
