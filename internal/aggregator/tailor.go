@@ -8,7 +8,7 @@ import (
 
 // startTail creates a goroutine that follows <path> like `tail -F`.
 // It returns a receive-only channel of Entry structs.
-func startTail(path string) (<-chan string, error) {
+func StartTail(path string) (<-chan string, error) {
 	t, err := tail.TailFile(path, tail.Config{
 		Follow:    true,              // <─ keep the goroutine alive
 		ReOpen:    true,    

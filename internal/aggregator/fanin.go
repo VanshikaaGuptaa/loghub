@@ -13,6 +13,28 @@ import (
 //
 // • If ParseLine() returns an error the raw line is forwarded anyway, so
 //   unstructured messages still appear in the UI.
+func Stream(chs ...<-chan string) <-chan Entry {
+    out := make(chan Entry)
+    var wg sync.WaitGroup
+
+    for _, ch := range chs {
+        wg.Add(1)
+        go func(c <-chan string) {
+            defer wg.Done()
+            for line := range c {
+                e, err := ParseLine(line)
+                if err != nil {
+                    out <- Entry{Raw: line} // unstructured
+                } else {
+                    out <- e
+                }
+            }
+        }(ch)
+    }
+    go func() { wg.Wait() }() // never close(out)
+    return out
+}
+
 func StreamMany(paths []string) <-chan Entry {
 	out := make(chan Entry)
 	var wg sync.WaitGroup
@@ -22,7 +44,7 @@ func StreamMany(paths []string) <-chan Entry {
 		go func(path string) {
 			defer wg.Done()
 
-			lines, err := startTail(path)
+			lines, err := StartTail(path)
 			if err != nil {
 				log.Printf("tail error %s: %v", path, err)
 				return
