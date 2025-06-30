@@ -23,9 +23,9 @@ Requirements:  Go 1.24 or newer.
 
 1.  Clone the repository and build a static binary:
 
-      git clone https://github.com/yourname/loghub
-      cd loghub
-      go build -o loghub .          (Windows produces loghub.exe)
+      git clone https://github.com/VanshikaaGuptaa/loghub</br>
+      cd loghub</br>
+      go build -o loghub .          (Windows produces loghub.exe)</br>
 
 2.  Optionally move the binary to a folder on your PATH.
 
