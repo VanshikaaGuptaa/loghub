@@ -1,6 +1,5 @@
-──────────────────────────────────────────────────────────────────────────────
+
 LOGHUB  –  A tiny log-aggregator for local development
-──────────────────────────────────────────────────────────────────────────────
 
 Loghub watches multiple log files (or standard-input) and streams them in a
 single colourised view.  It also offers live filtering and time-range export
